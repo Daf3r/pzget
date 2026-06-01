@@ -120,7 +120,7 @@ main_menu() {
   add_entry "📥" "AUR"            "programas de la comunidad"          "src"$'\t'"aur"$'\t'"AUR"
   add_entry "🌐" "Apps web"       "YouTube, ChatGPT…"                  "src"$'\t'"webapp"$'\t'"Apps web"
   add_entry "➕" "Crear app web"  "convierte un sitio web en app"      "add"
-  add_entry "🗑️" "Eliminar app"   "desinstala programas o webapps"     "remove"
+  add_entry "🗑️" "Eliminar app"   "desinstala programas instalados"    "remove"
 
   local chosen
   chosen="$(printf '%s' "$lines" | menu "pzget »")"

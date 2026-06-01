@@ -22,9 +22,8 @@ any Arch setup with `fuzzel` and `yay`.
   (no cleanBuild/diff menus); only your sudo password is asked once.
 - **Webapps** — turn any URL into a desktop app (`chromium --app`) with a
   high-quality auto-fetched icon (unavatar/clearbit) and a proper `.desktop`.
-- **Uninstall anything** — “🗑️ Eliminar app” opens an `fzf` picker of installed
-  packages **and** your pzget webapps; removes packages with `pacman -Rns` and
-  webapps by deleting their `.desktop`/icon (and their `webapps.toml` entry).
+- **Uninstall** — “🗑️ Eliminar app” opens an `fzf` picker of explicitly-installed
+  packages and removes the chosen ones with `pacman -Rns`.
 
 ## Requirements
 
@@ -82,7 +81,7 @@ hand-edit those.
 | `pzget` | Bash orchestrator — the fuzzel menu and router |
 | `pzget-catalog` | Python — the only piece that parses TOML; emits menu lines |
 | `pzget-pkg-pick` | Bash — omarchy-style `fzf` package picker, scoped to one source |
-| `pzget-pkg-remove` | Bash — `fzf` uninstaller for packages + pzget webapps |
+| `pzget-pkg-remove` | Bash — `fzf` uninstaller for installed packages |
 | `pzget-webapp-add` | Bash — creates a webapp `.desktop` + icon |
 
 ## License
