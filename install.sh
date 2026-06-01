@@ -7,6 +7,7 @@ DEST="${XDG_BIN_HOME:-$HOME/.local/bin}"
 mkdir -p "$DEST"
 
 for f in "$SRC"/*; do
+  [[ -f "$f" && -x "$f" ]] || continue   # skip __pycache__ and non-executables
   name="$(basename "$f")"
   ln -sf "$f" "$DEST/$name"
   echo "linked $DEST/$name"
