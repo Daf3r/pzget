@@ -52,14 +52,37 @@ if [[ -z "$chrome" ]]; then
   exit 1
 fi
 
-# Fetch a sized favicon (best-effort; .desktop still works without an icon).
-icon_path="$icon_dir/$slug.png"
+# Fetch a high-quality icon (omarchy-style). Try several sources in order;
+# unavatar/clearbit/icon.horse return real app logos, not tiny favicons.
+ext_for() {
+  case "$1" in
+    image/png) echo png ;; image/jpeg) echo jpg ;;
+    image/svg+xml) echo svg ;; image/x-icon|image/vnd.microsoft.icon) echo ico ;;
+    image/webp) echo webp ;; *) echo "" ;;
+  esac
+}
+
+icon_path="$chrome"   # fallback: the browser's own icon
 if command -v curl >/dev/null 2>&1; then
-  curl -fsL --max-time 10 \
-    "https://www.google.com/s2/favicons?domain=$host&sz=128" \
-    -o "$icon_path" 2>/dev/null || rm -f "$icon_path"
+  tmp="$(mktemp)"
+  for src in \
+    "https://unavatar.io/$host?fallback=false" \
+    "https://logo.clearbit.com/$host?size=256" \
+    "https://icon.horse/icon/$host" \
+    "https://www.google.com/s2/favicons?domain=$host&sz=128"; do
+    if curl -fsL --max-time 12 "$src" -o "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+      mime="$(file -b --mime-type "$tmp" 2>/dev/null)"
+      ext="$(ext_for "$mime")"
+      if [[ -n "$ext" ]]; then
+        rm -f "$icon_dir/$slug".*
+        icon_path="$icon_dir/$slug.$ext"
+        mv "$tmp" "$icon_path"
+        break
+      fi
+    fi
+  done
+  rm -f "$tmp"
 fi
-[[ -s "$icon_path" ]] || icon_path="$chrome"
 
 desktop="$apps_dir/pzget-$slug.desktop"
 cat >"$desktop" <<EOF
