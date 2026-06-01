@@ -20,10 +20,11 @@ menu() { # prompt < lines-on-stdin -> selected line
 term_run() {
   local title="$1" cmd="$2"
   local wrapped="$cmd; printf '\n\033[1;32m[pzget]\033[0m Listo. Pulsa Enter para cerrar…'; read -r"
+  # app-id "pzget" lets the WM float/size/center this window (see hypr rules).
   if command -v kitty >/dev/null 2>&1; then
-    setsid kitty --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
+    setsid kitty --class pzget --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
   elif command -v foot >/dev/null 2>&1; then
-    setsid foot --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
+    setsid foot --app-id pzget --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
   elif command -v xdg-terminal-exec >/dev/null 2>&1; then
     setsid xdg-terminal-exec bash -lc "$wrapped" >/dev/null 2>&1 &
   else
