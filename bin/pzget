@@ -20,11 +20,16 @@ menu() { # prompt < lines-on-stdin -> selected line
 term_run() {
   local title="$1" cmd="$2"
   local wrapped="$cmd; printf '\n\033[1;32m[pzget]\033[0m Listo. Pulsa Enter para cerrar…'; read -r"
-  # app-id "pzget" lets the WM float/size/center this window (see hypr rules).
+  # app-id "pzget" lets the WM float + center this window (see hypr rules).
+  # Terminals ignore Hyprland's `size` rule, so we ask them to open at a modest
+  # size directly (≈half the screen).
   if command -v kitty >/dev/null 2>&1; then
-    setsid kitty --class pzget --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
+    setsid kitty --class pzget \
+      -o remember_window_size=no -o initial_window_width=1280 -o initial_window_height=760 \
+      --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
   elif command -v foot >/dev/null 2>&1; then
-    setsid foot --app-id pzget --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
+    setsid foot --app-id pzget --window-size-pixels=1280x760 \
+      --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
   elif command -v xdg-terminal-exec >/dev/null 2>&1; then
     setsid xdg-terminal-exec bash -lc "$wrapped" >/dev/null 2>&1 &
   else
