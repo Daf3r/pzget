@@ -27,6 +27,20 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+def _lang() -> str:
+    lang = os.environ.get("PZGET_LANG")
+    if not lang:
+        try:
+            lang = (Path.home() / ".config/pzget/lang").read_text().strip()
+        except OSError:
+            lang = ""
+    return lang if lang in ("en", "es") else "es"
+
+
+def _desc(app: dict, lang: str) -> str:
+    return app.get(f"desc_{lang}") or app.get("desc", "")
+
+
 def _read(path: Path) -> dict:
     try:
         with open(path, "rb") as fh:
@@ -74,6 +88,7 @@ def cmd_categories(cats: list[dict]) -> None:
 
 
 def cmd_apps(cats: list[dict], cid: str) -> None:
+    lang = _lang()
     for c in cats:
         if c.get("id") != cid:
             continue
@@ -83,11 +98,12 @@ def cmd_apps(cats: list[dict], cid: str) -> None:
             name = a.get("name", target)
             if not name or not target:
                 continue
-            print(f"{name}\t{src}\t{target}\t{a.get('desc', '')}")
+            print(f"{name}\t{src}\t{target}\t{_desc(a, lang)}")
         return
 
 
 def cmd_source(cats: list[dict], src: str) -> None:
+    lang = _lang()
     for c in cats:
         for a in c.get("apps", []):
             if a.get("source", "repo") != src:
@@ -96,7 +112,7 @@ def cmd_source(cats: list[dict], src: str) -> None:
             name = a.get("name", target)
             if not name or not target:
                 continue
-            print(f"{name}\t{target}\t{a.get('desc', '')}")
+            print(f"{name}\t{target}\t{_desc(a, lang)}")
 
 
 def main() -> int:

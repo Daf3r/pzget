@@ -9,7 +9,8 @@ catalog, search the full repos/AUR when you need something else, turn any URL
 into a desktop web app, or uninstall things — all without leaving the keyboard.
 Installs run **fully unattended** (no confirmation or build menus).
 
-> The menu UI is in **Spanish**; code, config keys and this README are in English.
+> The menu UI is available in **English or Spanish**, chosen at install time
+> (stored in `~/.config/pzget/lang`). Code, config keys and this README are in English.
 
 ## The menu
 
@@ -75,7 +76,8 @@ git clone https://github.com/Daf3r/pzget ~/.local/share/pzget
 ```
 
 `install.sh` symlinks the binaries into `~/.local/bin` (make sure that's on your
-`PATH`).
+`PATH`) and asks for your **UI language** (English or Spanish). You can change it
+later by editing `~/.config/pzget/lang` (`en` or `es`) or re-running the script.
 
 ### Hyprland integration
 
@@ -110,10 +112,11 @@ icon  = "🛠️"
 blurb = "editores, git, terminales"
 
   [[categories.apps]]
-  name   = "Neovim"
-  source = "repo"        # repo | aur | webapp
-  pkg    = "neovim"      # package name  (repo / aur)
-  desc   = "editor de texto basado en Vim"
+  name    = "Neovim"
+  source  = "repo"        # repo | aur | webapp
+  pkg     = "neovim"      # package name  (repo / aur)
+  desc    = "editor de texto basado en Vim"   # default / fallback
+  desc_en = "Vim-based text editor"           # used when language = en
 
   [[categories.apps]]
   name   = "YouTube"
@@ -131,7 +134,8 @@ hand-edit those.
 | Binary | Role |
 |--------|------|
 | `pzget` | Bash orchestrator — the fuzzel menu and router |
-| `pzget-catalog` | Python — the only piece that parses TOML; emits menu lines |
+| `pzget-i18n` | Bash — sourced translation table (en/es) + `t()` helper |
+| `pzget-catalog` | Python — the only piece that parses TOML; emits menu lines (lang-aware `desc`) |
 | `pzget-pkg-pick` | Bash — omarchy-style `fzf` package picker, scoped to one source |
 | `pzget-pkg-remove` | Bash — `fzf` uninstaller for packages + pzget web apps |
 | `pzget-preview` | Bash — shell-agnostic `fzf` preview helper for the uninstaller |

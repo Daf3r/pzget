@@ -5,6 +5,10 @@
 # a terminal (pzget launches it for you).
 set -uo pipefail
 
+BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$BIN_DIR/pzget-i18n"
+
 src="${1:-repo}"
 
 if ! command -v fzf >/dev/null 2>&1; then
@@ -13,7 +17,7 @@ fi
 
 case "$src" in
   repo)
-    title="Arch (oficial)"
+    title="$(t arch_name)"
     mapfile -t names < <(pacman -Slq)
     preview='pacman -Sii {1}'
     ;;
@@ -21,7 +25,7 @@ case "$src" in
     if ! command -v yay >/dev/null 2>&1; then
       echo "pzget: yay is required for AUR" >&2; exit 1
     fi
-    title="AUR"
+    title="$(t aur_name)"
     mapfile -t names < <(yay -Slqa)
     preview='yay -Siia {1} 2>/dev/null'
     ;;
@@ -32,8 +36,8 @@ esac
 selection="$(
   printf '%s\n' "${names[@]}" | fzf \
     --multi \
-    --prompt "buscar en $title » " \
-    --header 'Escribe para filtrar · Tab: marcar varios · Enter: instalar · Esc: cancelar' \
+    --prompt "$(t pick_in) $title » " \
+    --header "$(t pick_header)" \
     --preview "$preview" \
     --preview-window 'down:60%:wrap' \
     --bind 'alt-p:toggle-preview' \
@@ -43,7 +47,7 @@ selection="$(
 
 [[ -z "$selection" ]] && exit 75   # cancelado -> que la terminal se cierre sola
 
-echo "Instalando: $(echo "$selection" | tr '\n' ' ')"
+echo "$(t installing) $(echo "$selection" | tr '\n' ' ')"
 if [[ "$src" == aur ]]; then
   echo "$selection" | sed 's#^#aur/#' | tr '\n' ' ' \
     | xargs yay -S --needed --noconfirm --answerdiff=None --answerclean=None --removemake

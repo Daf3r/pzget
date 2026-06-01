@@ -3,19 +3,20 @@
 # Structure:
 #   [[categories]]
 #   id    = "dev"                 stable internal id (no spaces)
-#   name  = "Desarrollo"          shown in the menu
-#   icon  = "🛠️"                  emoji shown before the name
-#   blurb = "editores, git…"      short hint shown next to the category
+#   name  = "Desarrollo"          (kept for organisation; menu groups by source)
+#   icon  = "🛠️"
+#   blurb = "editores, git…"
 #
 #     [[categories.apps]]
-#     name   = "Neovim"           shown in the menu
-#     source = "repo"             repo | aur | webapp
-#     pkg    = "neovim"           package name  (for source = repo | aur)
-#     url    = "https://..."      web address   (for source = webapp)
-#     desc   = "..."              short one-line description (optional)
+#     name    = "Neovim"          shown in the menu
+#     source  = "repo"            repo | aur | webapp
+#     pkg     = "neovim"          package name  (repo / aur)
+#     url     = "https://..."     web address   (webapp)
+#     desc    = "..."             description (default / fallback)
+#     desc_en = "..."             English description (used when language = en)
 #
-# User-added webapps live in ~/.config/pzget/webapps.toml and are merged
-# automatically as a "Mis webapps" category — you don't edit those here.
+# The menu shows desc_<lang> if present, else desc. (Language is chosen at
+# install time and stored in ~/.config/pzget/lang.)
 
 [[categories]]
 id = "dev"
@@ -28,24 +29,28 @@ blurb = "editores, git, terminales"
   source = "repo"
   pkg = "neovim"
   desc = "editor de texto basado en Vim"
+  desc_en = "Vim-based text editor"
 
   [[categories.apps]]
   name = "Visual Studio Code"
   source = "aur"
   pkg = "visual-studio-code-bin"
   desc = "editor de código de Microsoft"
+  desc_en = "Microsoft's code editor"
 
   [[categories.apps]]
   name = "Zed"
   source = "repo"
   pkg = "zed"
   desc = "editor de código rápido y colaborativo"
+  desc_en = "fast, collaborative code editor"
 
   [[categories.apps]]
   name = "lazygit"
   source = "repo"
   pkg = "lazygit"
   desc = "interfaz de terminal para git"
+  desc_en = "terminal UI for git"
 
 [[categories]]
 id = "media"
@@ -58,12 +63,14 @@ blurb = "música, vídeo, fotos"
   source = "repo"
   pkg = "mpv"
   desc = "reproductor de vídeo minimalista"
+  desc_en = "minimalist video player"
 
   [[categories.apps]]
   name = "Spotify"
   source = "aur"
   pkg = "spotify"
   desc = "música en streaming"
+  desc_en = "music streaming"
 
 [[categories]]
 id = "gaming"
@@ -76,12 +83,14 @@ blurb = "Steam, Lutris…"
   source = "repo"
   pkg = "steam"
   desc = "tienda y lanzador de juegos de Valve"
+  desc_en = "Valve's game store and launcher"
 
   [[categories.apps]]
   name = "Lutris"
   source = "repo"
   pkg = "lutris"
   desc = "plataforma de juegos para Linux"
+  desc_en = "open gaming platform for Linux"
 
 [[categories]]
 id = "web"
@@ -94,9 +103,11 @@ blurb = "YouTube, ChatGPT…"
   source = "webapp"
   url = "https://youtube.com"
   desc = "vídeos"
+  desc_en = "videos"
 
   [[categories.apps]]
   name = "ChatGPT"
   source = "webapp"
   url = "https://chatgpt.com"
   desc = "asistente de OpenAI"
+  desc_en = "OpenAI assistant"

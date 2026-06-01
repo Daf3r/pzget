@@ -12,6 +12,10 @@
 #   --no-save      do not append to ~/.config/pzget/webapps.toml
 set -euo pipefail
 
+BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$BIN_DIR/pzget-i18n"
+
 NAME=""
 URL=""
 SAVE=true
@@ -27,10 +31,10 @@ done
 
 prompt() { fuzzel --dmenu --prompt "$1 " --lines 0 2>/dev/null; }
 
-[[ -z "$NAME" ]] && NAME="$(: | prompt 'Webapp name:')"
-[[ -z "$NAME" ]] && { echo "cancelled" >&2; exit 1; }
-[[ -z "$URL" ]] && URL="$(: | prompt 'Webapp URL:')"
-[[ -z "$URL" ]] && { echo "cancelled" >&2; exit 1; }
+[[ -z "$NAME" ]] && NAME="$(: | prompt "$(t q_name)")"
+[[ -z "$NAME" ]] && { echo "$(t cancelled)" >&2; exit 1; }
+[[ -z "$URL" ]] && URL="$(: | prompt "$(t q_url)")"
+[[ -z "$URL" ]] && { echo "$(t cancelled)" >&2; exit 1; }
 
 # Normalise URL (add scheme if missing).
 [[ "$URL" =~ ^https?:// ]] || URL="https://$URL"
@@ -125,6 +129,6 @@ if [[ "$SAVE" == true ]]; then
 fi
 
 command -v notify-send >/dev/null 2>&1 && \
-  notify-send -i "$icon_path" "pzget" "Webapp creada: $NAME" 2>/dev/null || true
+  notify-send -i "$icon_path" "pzget" "$(t created) $NAME" 2>/dev/null || true
 
 echo "$desktop"

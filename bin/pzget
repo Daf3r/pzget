@@ -13,6 +13,9 @@ WEBAPP_ADD="$BIN_DIR/pzget-webapp-add"
 PKG_PICK="$BIN_DIR/pzget-pkg-pick"
 PKG_REMOVE="$BIN_DIR/pzget-pkg-remove"
 
+# shellcheck source=/dev/null
+. "$BIN_DIR/pzget-i18n"
+
 menu() { # prompt < lines-on-stdin -> selected line
   fuzzel --dmenu --prompt "$1 " --width 52 2>/dev/null
 }
@@ -22,7 +25,7 @@ term_run() {
   local title="$1" cmd="$2"
   # Exit code 75 = "cancelled" -> close immediately; otherwise pause so the
   # user can read the output before the window closes.
-  local wrapped="$cmd; __pz_rc=\$?; if [ \$__pz_rc -ne 75 ]; then printf '\n\033[1;32m[pzget]\033[0m Listo. Pulsa Enter para cerrar…'; read -r; fi"
+  local wrapped="$cmd; __pz_rc=\$?; if [ \$__pz_rc -ne 75 ]; then printf '\n\033[1;32m[pzget]\033[0m $(t term_done)'; read -r; fi"
   # app-id "pzget" lets the WM float + center this window (see hypr rules).
   # Terminals ignore Hyprland's `size` rule, so we ask them to open at a modest
   # size directly (≈half the screen).
@@ -74,7 +77,7 @@ show_source() { # source title
     local label
     WEBAPP_NAME="$name"
     if is_installed "$source" "$target"; then
-      label="$(printf '  ✓  %-20s  %s' "$name" "(ya instalado)")"
+      label="$(printf '  ✓  %-20s  %s' "$name" "$(t installed)")"
     else
       label="$(printf '     %-20s  ·  %s' "$name" "$desc")"
     fi
@@ -85,7 +88,7 @@ show_source() { # source title
   # Package sources also get the omarchy-style "search everything" picker.
   if [[ "$source" == repo || "$source" == aur ]]; then
     [[ -n "$lines" ]] && lines+="  ─────────────────────────────"$'\n'
-    local s_label="  🔎  Buscar cualquier paquete…"
+    local s_label="  🔎  $(t search_pkg)"
     ACTION["$s_label"]="search"
     lines+="$s_label"$'\n'
   fi
@@ -98,7 +101,7 @@ show_source() { # source title
   [[ -z "$act" ]] && return
 
   if [[ "$act" == "search" ]]; then
-    term_run "pzget · buscar $title" "$PKG_PICK $source"
+    term_run "pzget · $title" "$PKG_PICK $source"
     return
   fi
 
@@ -116,11 +119,11 @@ main_menu() {
     lines+="$label"$'\n'
   }
 
-  add_entry "📦" "Arch (oficial)" "programas del repositorio oficial" "src"$'\t'"repo"$'\t'"Arch (oficial)"
-  add_entry "📥" "AUR"            "programas de la comunidad"          "src"$'\t'"aur"$'\t'"AUR"
-  add_entry "🌐" "Apps web"       "YouTube, ChatGPT…"                  "src"$'\t'"webapp"$'\t'"Apps web"
-  add_entry "➕" "Crear app web"  "convierte un sitio web en app"      "add"
-  add_entry "🗑️" "Eliminar app"   "desinstala programas o webapps"     "remove"
+  add_entry "📦" "$(t arch_name)" "$(t arch_blurb)" "src"$'\t'"repo"$'\t'"$(t arch_name)"
+  add_entry "📥" "$(t aur_name)"  "$(t aur_blurb)"  "src"$'\t'"aur"$'\t'"$(t aur_name)"
+  add_entry "🌐" "$(t web_name)"  "$(t web_blurb)"  "src"$'\t'"webapp"$'\t'"$(t web_name)"
+  add_entry "➕" "$(t add_name)"  "$(t add_blurb)"  "add"
+  add_entry "🗑️" "$(t remove_name)" "$(t remove_blurb)" "remove"
 
   local chosen
   chosen="$(printf '%s' "$lines" | menu "pzget »")"
@@ -132,7 +135,7 @@ main_menu() {
   local kind="${act%%$'\t'*}"
   case "$kind" in
     add) "$WEBAPP_ADD" ;;
-    remove) term_run "pzget · eliminar" "$PKG_REMOVE" ;;
+    remove) term_run "pzget · $(t remove_name)" "$PKG_REMOVE" ;;
     src)
       local rest source title
       rest="${act#src$'\t'}"

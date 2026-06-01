@@ -11,6 +11,8 @@ if ! command -v fzf >/dev/null 2>&1; then
 fi
 
 BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+# shellcheck source=/dev/null
+. "$BIN_DIR/pzget-i18n"
 apps_dir="$HOME/.local/share/applications"
 icon_dir="$HOME/.local/share/pzget/icons"
 
@@ -35,8 +37,8 @@ selection="$(
     --multi \
     --delimiter='\t' \
     --with-nth=1 \
-    --prompt 'eliminar » ' \
-    --header 'DESINSTALAR · Tab: marcar varios · Enter: eliminar · Esc: cancelar' \
+    --prompt "$(t remove_prompt) » " \
+    --header "$(t remove_header)" \
     --preview "$BIN_DIR/pzget-preview {2}" \
     --preview-window 'down:60%:wrap' \
     --bind 'alt-p:toggle-preview' \
@@ -53,7 +55,7 @@ while IFS=$'\t' read -r _disp action; do
     webapp:*)
       slug="${action#webapp:}"
       rm -f "$apps_dir/pzget-$slug.desktop" "$icon_dir/$slug".*
-      echo "Webapp eliminada: $slug"
+      echo "$(t webapp_removed) $slug"
       # Drop it from webapps.toml too, if it was saved there.
       python3 - "$slug" <<'PY' 2>/dev/null || true
 import sys, re, tomllib
@@ -77,6 +79,6 @@ PY
 done <<< "$selection"
 
 if [ ${#pkgs[@]} -gt 0 ]; then
-  echo "Desinstalando: ${pkgs[*]}"
+  echo "$(t uninstalling) ${pkgs[*]}"
   sudo pacman -Rns --noconfirm "${pkgs[@]}"
 fi

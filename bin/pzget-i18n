@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# pzget-i18n — sourced by the other scripts. Resolves the UI language and
+# provides t() for translated strings. Language comes from $PZGET_LANG, else
+# ~/.config/pzget/lang, else "es". Exported so child processes (pzget-catalog)
+# inherit it.
+PZGET_LANG="${PZGET_LANG:-$(cat "$HOME/.config/pzget/lang" 2>/dev/null || echo es)}"
+case "$PZGET_LANG" in en|es) ;; *) PZGET_LANG=es ;; esac
+export PZGET_LANG
+
+declare -A T_es=(
+  [arch_name]="Arch (oficial)"          [arch_blurb]="programas del repositorio oficial"
+  [aur_name]="AUR"                       [aur_blurb]="programas de la comunidad"
+  [web_name]="Apps web"                  [web_blurb]="YouTube, ChatGPT…"
+  [add_name]="Crear app web"             [add_blurb]="convierte un sitio web en app"
+  [remove_name]="Eliminar app"           [remove_blurb]="desinstala programas o webapps"
+  [installed]="(ya instalado)"
+  [search_pkg]="Buscar cualquier paquete…"
+  [empty_cat]="Sin apps en"
+  [term_done]="Listo. Pulsa Enter para cerrar…"
+  [pick_in]="buscar en"
+  [pick_header]="Escribe para filtrar · Tab: marcar varios · Enter: instalar · Esc: cancelar"
+  [installing]="Instalando:"
+  [nothing]="Nada seleccionado."
+  [remove_prompt]="eliminar"
+  [remove_header]="DESINSTALAR · Tab: marcar varios · Enter: eliminar · Esc: cancelar"
+  [uninstalling]="Desinstalando:"
+  [webapp_removed]="Webapp eliminada:"
+  [q_name]="Nombre de la webapp:"
+  [q_url]="URL de la webapp:"
+  [created]="Webapp creada:"
+  [cancelled]="cancelado"
+  [preview_webapp]="Webapp creada con pzget"
+)
+
+declare -A T_en=(
+  [arch_name]="Arch (official)"          [arch_blurb]="official repository packages"
+  [aur_name]="AUR"                       [aur_blurb]="community packages"
+  [web_name]="Web apps"                  [web_blurb]="YouTube, ChatGPT…"
+  [add_name]="Create web app"            [add_blurb]="turn a website into an app"
+  [remove_name]="Uninstall app"          [remove_blurb]="remove packages or web apps"
+  [installed]="(installed)"
+  [search_pkg]="Search any package…"
+  [empty_cat]="No apps in"
+  [term_done]="Done. Press Enter to close…"
+  [pick_in]="search"
+  [pick_header]="Type to filter · Tab: multi-select · Enter: install · Esc: cancel"
+  [installing]="Installing:"
+  [nothing]="Nothing selected."
+  [remove_prompt]="remove"
+  [remove_header]="UNINSTALL · Tab: multi-select · Enter: remove · Esc: cancel"
+  [uninstalling]="Uninstalling:"
+  [webapp_removed]="Web app removed:"
+  [q_name]="Web app name:"
+  [q_url]="Web app URL:"
+  [created]="Web app created:"
+  [cancelled]="cancelled"
+  [preview_webapp]="Web app created with pzget"
+)
+
+t() {
+  if [[ "$PZGET_LANG" == en ]]; then
+    printf '%s' "${T_en[$1]-${T_es[$1]-$1}}"
+  else
+    printf '%s' "${T_es[$1]-$1}"
+  fi
+}
