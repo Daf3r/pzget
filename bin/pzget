@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
 # pzget — graphical app/webapp installer menu (fuzzel dmenu).
 #
-# Main menu: your curated categories + "Search everything" + "Add webapp".
-# Pick a category -> pick an app -> it installs (pacman/yay) or creates a
-# webapp. Installed items are marked with a check.
+# A curated catalog only (omarchy-style): pick a category -> pick an app ->
+# it installs automatically (pacman/yay) or creates a webapp. No package
+# searching; the catalog is the list. Installed items are marked with a check.
 set -uo pipefail
 
 BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 CATALOG="$BIN_DIR/pzget-catalog"
 WEBAPP_ADD="$BIN_DIR/pzget-webapp-add"
-SEARCH="$BIN_DIR/pzget-search"
-
-CHECK="✓"
-SEARCH_LABEL="🔍  Search everything (repos + AUR)"
-ADD_LABEL="➕  Add a webapp"
 
 menu() { # prompt < lines-on-stdin -> selected line
   fuzzel --dmenu --prompt "$1 " --width 50 2>/dev/null
@@ -60,23 +55,25 @@ install_app() { # name source target
 
 show_category() { # category-id category-name
   local cid="$1" cname="$2"
-  declare -A ACTION
-  local display=""
+  declare -A ACTION=()
+  local lines=""
   while IFS=$'\t' read -r name source target desc; do
     [[ -z "$name" ]] && continue
-    local mark="   "
+    local label
     WEBAPP_NAME="$name"
-    if is_installed "$source" "$target"; then mark=" $CHECK "; fi
-    local line="$mark$name"
-    [[ -n "$desc" ]] && line="$line  —  $desc"
-    display+="$line"$'\n'
-    ACTION["$line"]="$name"$'\t'"$source"$'\t'"$target"
+    if is_installed "$source" "$target"; then
+      label="$(printf '  ✓  %-20s  %s' "$name" "(ya instalado)")"
+    else
+      label="$(printf '     %-20s  ·  %s' "$name" "$desc")"
+    fi
+    ACTION["$label"]="$name"$'\t'"$source"$'\t'"$target"
+    lines+="$label"$'\n'
   done < <("$CATALOG" apps "$cid")
 
-  [[ -z "$display" ]] && { notify-send "pzget" "Categoría vacía: $cname" 2>/dev/null; return; }
+  [[ -z "$lines" ]] && { notify-send "pzget" "Categoría vacía: $cname" 2>/dev/null; return; }
 
   local chosen
-  chosen="$(printf '%s' "$display" | menu "$cname »")"
+  chosen="$(printf '%s' "$lines" | menu "$cname »")"
   [[ -z "$chosen" ]] && return
 
   local act="${ACTION[$chosen]:-}"
@@ -86,29 +83,43 @@ show_category() { # category-id category-name
 }
 
 main_menu() {
-  declare -A CATNAME
-  local lines=""
-  while IFS=$'\t' read -r cid cname; do
-    [[ -z "$cid" ]] && continue
-    CATNAME["$cname"]="$cid"
-    lines+="$cname"$'\n'
-  done < <("$CATALOG" categories)
+  while true; do
+    declare -A ACTION=()
+    local lines="  Categorías"$'\n\n'
 
-  lines+="$SEARCH_LABEL"$'\n'"$ADD_LABEL"
+    while IFS=$'\t' read -r cid cname icon blurb; do
+      [[ -z "$cid" ]] && continue
+      local label
+      label="$(printf '  %s  %-12s  %s' "$icon" "$cname" "$blurb")"
+      ACTION["$label"]="cat"$'\t'"$cid"$'\t'"$cname"
+      lines+="$label"$'\n'
+    done < <("$CATALOG" categories)
 
-  local chosen
-  chosen="$(printf '%s' "$lines" | menu "pzget »")"
-  [[ -z "$chosen" ]] && exit 0
+    lines+=$'\n'"  Acciones"$'\n\n'
+    local addlbl
+    addlbl="$(printf '  %s  %-12s  %s' "➕" "Crear app web" "convierte un sitio en app")"
+    ACTION["$addlbl"]="add"
+    lines+="$addlbl"
 
-  case "$chosen" in
-    "$SEARCH_LABEL")
-      term_run "pzget · search" "$SEARCH" ;;
-    "$ADD_LABEL")
-      "$WEBAPP_ADD" ;;
-    *)
-      local cid="${CATNAME[$chosen]:-}"
-      [[ -n "$cid" ]] && show_category "$cid" "$chosen" ;;
-  esac
+    local chosen
+    chosen="$(printf '%s' "$lines" | menu "pzget »")"
+    [[ -z "$chosen" ]] && exit 0
+
+    local act="${ACTION[$chosen]:-}"
+    [[ -z "$act" ]] && continue   # encabezado o línea vacía -> reabrir menú
+
+    local kind rest cid cname
+    kind="${act%%$'\t'*}"
+    case "$kind" in
+      add) "$WEBAPP_ADD"; exit 0 ;;
+      cat)
+        rest="${act#cat$'\t'}"
+        cid="${rest%%$'\t'*}"
+        cname="${rest#*$'\t'}"
+        show_category "$cid" "$cname"
+        exit 0 ;;
+    esac
+  done
 }
 
 main_menu

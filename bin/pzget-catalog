@@ -5,7 +5,7 @@ Emits plain, tab-separated text so the Bash side never has to parse TOML.
 
 Commands:
   pzget-catalog categories
-      -> one line per category:  <id>\t<name>
+      -> one line per category:  <id>\t<name>\t<icon>\t<blurb>
   pzget-catalog apps <category-id>
       -> one line per app:       <name>\t<source>\t<target>\t<desc>
          where <target> is the package name (repo/aur) or url (webapp)
@@ -50,7 +50,9 @@ def load_categories() -> list[dict]:
     if webapps:
         cats = cats + [{
             "id": "my-webapps",
-            "name": "My Webapps",
+            "name": "Mis webapps",
+            "icon": "🔖",
+            "blurb": "las que tú creaste",
             "apps": [
                 {"name": w["name"], "source": "webapp", "url": w["url"],
                  "desc": w.get("desc", "")}
@@ -65,7 +67,7 @@ def cmd_categories(cats: list[dict]) -> None:
         cid = c.get("id")
         if not cid:
             continue
-        print(f"{cid}\t{c.get('name', cid)}")
+        print(f"{cid}\t{c.get('name', cid)}\t{c.get('icon', '📦')}\t{c.get('blurb', '')}")
 
 
 def cmd_apps(cats: list[dict], cid: str) -> None:

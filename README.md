@@ -3,27 +3,27 @@
 A fast, keyboard-driven app & webapp installer for Arch Linux — omarchy-style.
 
 A single graphical menu (via [fuzzel](https://codeberg.org/dnkl/fuzzel)) that lets
-you install from a **curated catalog** of your favourite apps, fall back to a
-**universal search** across the official repos and the AUR, or spin up a
-**Chromium web app** from any URL in seconds.
+you install apps from a **curated catalog** — or spin up a **Chromium web app**
+from any URL in seconds. No package hunting: the catalog is the list, installs
+run fully unattended (omarchy-style).
 
 Built for [caelestia](https://github.com/caelestia-dots) / Hyprland, but works on
-any Arch setup with `fuzzel`, `fzf` and `yay`.
+any Arch setup with `fuzzel` and `yay`.
 
 ## Features
 
-- **Curated catalog** — your hand-picked apps grouped by category, defined in a
-  simple `catalog.toml`. Installed items are marked with a check.
-- **Universal search** — type to search official repos **and** the AUR live,
-  with package info preview. Tab to multi-select, Enter to install.
+- **Curated catalog** — your hand-picked apps grouped by category with icons and
+  plain-language hints, defined in a simple `catalog.toml`. Installed items are
+  marked with a check.
+- **Unattended installs** — pacman/AUR packages install with no prompts at all
+  (no cleanBuild/diff menus); only your sudo password is asked once.
 - **Webapps** — turn any URL into a desktop app (`chromium --app`) with an
   auto-fetched favicon and a proper `.desktop` entry.
 
 ## Requirements
 
 - `fuzzel` — the graphical menu
-- `fzf` — universal search UI
-- `yay` (or another AUR helper exposing `-Ssq`/`-Sii`) — repo + AUR
+- `yay` — installs from official repos and the AUR
 - `python3` (3.11+) — reads the TOML catalog (`tomllib`)
 - A chromium-family browser (`chromium`, `brave`, …) — for webapps
 - A terminal: `kitty`, `foot`, or any `xdg-terminal-exec` provider
@@ -39,7 +39,7 @@ git clone https://github.com/Daf3r/pzget ~/.local/share/pzget
 `PATH`). Then bind `pzget` to a key in Hyprland, e.g.:
 
 ```ini
-bind = SUPER, A, exec, pzget
+bind = SUPER, I, exec, pzget
 ```
 
 ## Configuring the catalog
@@ -74,7 +74,6 @@ hand-edit those.
 |--------|------|
 | `pzget` | Bash orchestrator — the fuzzel menu and router |
 | `pzget-catalog` | Python — the only piece that parses TOML; emits menu lines |
-| `pzget-search` | Bash — live repo + AUR search via `fzf` |
 | `pzget-webapp-add` | Bash — creates a webapp `.desktop` + icon |
 
 ## License
