@@ -15,14 +15,18 @@ any Arch setup with `fuzzel` and `yay`.
 - **Organised by source** — the main menu is the sources themselves: 📦 Arch
   (official repos), 📥 AUR, 🌐 web apps. You always know where each app comes
   from. The catalog lives in a simple `catalog.toml`; installed items show a check.
+- **Curated list + full search** — inside 📦 Arch / 📥 AUR you get your favourite
+  apps first, plus a “🔎 Buscar cualquier paquete…” entry that opens an
+  omarchy-style `fzf` picker over *every* package in that source.
 - **Unattended installs** — pacman/AUR packages install with no prompts at all
   (no cleanBuild/diff menus); only your sudo password is asked once.
-- **Webapps** — turn any URL into a desktop app (`chromium --app`) with an
-  auto-fetched favicon and a proper `.desktop` entry.
+- **Webapps** — turn any URL into a desktop app (`chromium --app`) with a
+  high-quality auto-fetched icon (unavatar/clearbit) and a proper `.desktop`.
 
 ## Requirements
 
 - `fuzzel` — the graphical menu
+- `fzf` — the “search any package” picker inside Arch/AUR
 - `yay` — installs from official repos and the AUR
 - `python3` (3.11+) — reads the TOML catalog (`tomllib`)
 - A chromium-family browser (`chromium`, `brave`, …) — for webapps
@@ -74,6 +78,7 @@ hand-edit those.
 |--------|------|
 | `pzget` | Bash orchestrator — the fuzzel menu and router |
 | `pzget-catalog` | Python — the only piece that parses TOML; emits menu lines |
+| `pzget-pkg-pick` | Bash — omarchy-style `fzf` package picker, scoped to one source |
 | `pzget-webapp-add` | Bash — creates a webapp `.desktop` + icon |
 
 ## License

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# pzget-pkg-pick SOURCE   (SOURCE = repo | aur)
+# omarchy-style fzf package picker, scoped to one source. Lists every package
+# of that source so you can filter and install any of them. Meant to run inside
+# a terminal (pzget launches it for you).
+set -uo pipefail
+
+src="${1:-repo}"
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "pzget: fzf is required for package search" >&2; exit 1
+fi
+
+case "$src" in
+  repo)
+    title="Arch (oficial)"
+    mapfile -t names < <(pacman -Slq)
+    preview='pacman -Sii {1}'
+    ;;
+  aur)
+    if ! command -v yay >/dev/null 2>&1; then
+      echo "pzget: yay is required for AUR" >&2; exit 1
+    fi
+    title="AUR"
+    mapfile -t names < <(yay -Slqa)
+    preview='yay -Siia {1} 2>/dev/null'
+    ;;
+  *)
+    echo "pzget-pkg-pick: unknown source '$src' (use repo|aur)" >&2; exit 1 ;;
+esac
+
+selection="$(
+  printf '%s\n' "${names[@]}" | fzf \
+    --multi \
+    --prompt "buscar en $title » " \
+    --header 'Escribe para filtrar · Tab: marcar varios · Enter: instalar · Esc: cancelar' \
+    --preview "$preview" \
+    --preview-window 'down:60%:wrap' \
+    --bind 'alt-p:toggle-preview' \
+    --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
+    --color 'pointer:green,marker:green'
+)"
+
+[[ -z "$selection" ]] && { echo "Nada seleccionado."; exit 0; }
+
+echo "Instalando: $(echo "$selection" | tr '\n' ' ')"
+if [[ "$src" == aur ]]; then
+  echo "$selection" | sed 's#^#aur/#' | tr '\n' ' ' \
+    | xargs yay -S --needed --noconfirm --answerdiff=None --answerclean=None --removemake
+else
+  # shellcheck disable=SC2046
+  sudo pacman -S --needed --noconfirm $(echo "$selection" | tr '\n' ' ')
+fi

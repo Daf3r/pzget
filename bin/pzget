@@ -10,6 +10,7 @@ set -uo pipefail
 BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 CATALOG="$BIN_DIR/pzget-catalog"
 WEBAPP_ADD="$BIN_DIR/pzget-webapp-add"
+PKG_PICK="$BIN_DIR/pzget-pkg-pick"
 
 menu() { # prompt < lines-on-stdin -> selected line
   fuzzel --dmenu --prompt "$1 " --width 52 2>/dev/null
@@ -72,7 +73,13 @@ show_source() { # source title
     lines+="$label"$'\n'
   done < <("$CATALOG" source "$source")
 
-  [[ -z "$lines" ]] && { notify-send "pzget" "Sin apps en $title" 2>/dev/null; return; }
+  # Package sources also get the omarchy-style "search everything" picker.
+  if [[ "$source" == repo || "$source" == aur ]]; then
+    [[ -n "$lines" ]] && lines+="  ─────────────────────────────"$'\n'
+    local s_label="  🔎  Buscar cualquier paquete…"
+    ACTION["$s_label"]="search"
+    lines+="$s_label"$'\n'
+  fi
 
   local chosen
   chosen="$(printf '%s' "$lines" | menu "$title »")"
@@ -80,6 +87,12 @@ show_source() { # source title
 
   local act="${ACTION[$chosen]:-}"
   [[ -z "$act" ]] && return
+
+  if [[ "$act" == "search" ]]; then
+    term_run "pzget · buscar $title" "$PKG_PICK $source"
+    return
+  fi
+
   IFS=$'\t' read -r a_name a_target <<<"$act"
   install_app "$a_name" "$source" "$a_target"
 }
