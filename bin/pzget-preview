@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# pzget-preview ACTION — fzf preview helper for pzget-pkg-remove.
+# ACTION is "pkg:NAME" or "webapp:SLUG". Kept as a standalone executable so it
+# works no matter which shell fzf uses to launch it (bash, fish, zsh…).
+a="${1:-}"
+case "$a" in
+  pkg:*)    pacman -Qi "${a#pkg:}" 2>/dev/null || echo "Paquete: ${a#pkg:}" ;;
+  webapp:*) echo "Webapp creada con pzget (${a#webapp:})" ;;
+  *)        : ;;
+esac
