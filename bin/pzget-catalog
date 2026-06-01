@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""pzget-catalog — the only component that understands TOML.
+
+Emits plain, tab-separated text so the Bash side never has to parse TOML.
+
+Commands:
+  pzget-catalog categories
+      -> one line per category:  <id>\t<name>
+  pzget-catalog apps <category-id>
+      -> one line per app:       <name>\t<source>\t<target>\t<desc>
+         where <target> is the package name (repo/aur) or url (webapp)
+
+Catalog sources, merged in order:
+  1. $PZGET_CATALOG or ~/.config/pzget/catalog.toml   (user override, optional)
+  2. <repo>/catalog.toml                               (shipped default)
+User-added webapps in ~/.config/pzget/webapps.toml are appended as a
+synthetic "webapps" category.
+"""
+import os
+import sys
+import tomllib
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _read(path: Path) -> dict:
+    try:
+        with open(path, "rb") as fh:
+            return tomllib.load(fh)
+    except (FileNotFoundError, tomllib.TOMLDecodeError):
+        return {}
+
+
+def load_categories() -> list[dict]:
+    override = os.environ.get("PZGET_CATALOG")
+    candidates = [
+        Path(override) if override else Path.home() / ".config/pzget/catalog.toml",
+        REPO_ROOT / "catalog.toml",
+    ]
+    cats: list[dict] = []
+    for path in candidates:
+        data = _read(path)
+        if data.get("categories"):
+            cats = data["categories"]
+            break
+
+    # Merge user-added webapps as their own category at the end.
+    webapps = _read(Path.home() / ".config/pzget/webapps.toml").get("webapps", [])
+    if webapps:
+        cats = cats + [{
+            "id": "my-webapps",
+            "name": "My Webapps",
+            "apps": [
+                {"name": w["name"], "source": "webapp", "url": w["url"],
+                 "desc": w.get("desc", "")}
+                for w in webapps if w.get("name") and w.get("url")
+            ],
+        }]
+    return cats
+
+
+def cmd_categories(cats: list[dict]) -> None:
+    for c in cats:
+        cid = c.get("id")
+        if not cid:
+            continue
+        print(f"{cid}\t{c.get('name', cid)}")
+
+
+def cmd_apps(cats: list[dict], cid: str) -> None:
+    for c in cats:
+        if c.get("id") != cid:
+            continue
+        for a in c.get("apps", []):
+            src = a.get("source", "repo")
+            target = a.get("url", "") if src == "webapp" else a.get("pkg", "")
+            name = a.get("name", target)
+            if not name or not target:
+                continue
+            print(f"{name}\t{src}\t{target}\t{a.get('desc', '')}")
+        return
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        sys.stderr.write("usage: pzget-catalog <categories|apps CATEGORY_ID>\n")
+        return 2
+    cats = load_categories()
+    cmd = sys.argv[1]
+    if cmd == "categories":
+        cmd_categories(cats)
+    elif cmd == "apps":
+        if len(sys.argv) < 3:
+            sys.stderr.write("usage: pzget-catalog apps CATEGORY_ID\n")
+            return 2
+        cmd_apps(cats, sys.argv[2])
+    else:
+        sys.stderr.write(f"pzget-catalog: unknown command '{cmd}'\n")
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

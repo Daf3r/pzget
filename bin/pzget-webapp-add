@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# pzget-webapp-add — create a Chromium web app (.desktop + icon).
+#
+# Interactive (prompts via fuzzel and saves to your webapps.toml):
+#   pzget-webapp-add
+# Non-interactive (used by pzget for curated webapps, does NOT save to toml):
+#   pzget-webapp-add --name "YouTube" --url "https://youtube.com" --no-save
+#
+# Flags:
+#   --name NAME    web app display name
+#   --url  URL     web address
+#   --no-save      do not append to ~/.config/pzget/webapps.toml
+set -euo pipefail
+
+NAME=""
+URL=""
+SAVE=true
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --name) NAME="$2"; shift 2 ;;
+    --url) URL="$2"; shift 2 ;;
+    --no-save) SAVE=false; shift ;;
+    *) echo "pzget-webapp-add: unknown arg '$1'" >&2; exit 2 ;;
+  esac
+done
+
+prompt() { fuzzel --dmenu --prompt "$1 " --lines 0 2>/dev/null; }
+
+[[ -z "$NAME" ]] && NAME="$(: | prompt 'Webapp name:')"
+[[ -z "$NAME" ]] && { echo "cancelled" >&2; exit 1; }
+[[ -z "$URL" ]] && URL="$(: | prompt 'Webapp URL:')"
+[[ -z "$URL" ]] && { echo "cancelled" >&2; exit 1; }
+
+# Normalise URL (add scheme if missing).
+[[ "$URL" =~ ^https?:// ]] || URL="https://$URL"
+
+slug="$(echo "$NAME" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
+host="$(echo "$URL" | sed -E 's#^https?://([^/]+).*#\1#')"
+
+icon_dir="$HOME/.local/share/pzget/icons"
+apps_dir="$HOME/.local/share/applications"
+mkdir -p "$icon_dir" "$apps_dir"
+
+# Pick a chromium-family browser for --app mode.
+chrome=""
+for b in chromium brave google-chrome-stable microsoft-edge vivaldi; do
+  if command -v "$b" >/dev/null 2>&1; then chrome="$b"; break; fi
+done
+if [[ -z "$chrome" ]]; then
+  echo "pzget-webapp-add: no chromium-family browser found (needed for --app)" >&2
+  exit 1
+fi
+
+# Fetch a sized favicon (best-effort; .desktop still works without an icon).
+icon_path="$icon_dir/$slug.png"
+if command -v curl >/dev/null 2>&1; then
+  curl -fsL --max-time 10 \
+    "https://www.google.com/s2/favicons?domain=$host&sz=128" \
+    -o "$icon_path" 2>/dev/null || rm -f "$icon_path"
+fi
+[[ -s "$icon_path" ]] || icon_path="$chrome"
+
+desktop="$apps_dir/pzget-$slug.desktop"
+cat >"$desktop" <<EOF
+[Desktop Entry]
+Version=1.0
+Name=$NAME
+Comment=Web app (pzget)
+Exec=$chrome --app=$URL
+Terminal=false
+Type=Application
+Icon=$icon_path
+Categories=Network;X-Pzget-Webapp;
+StartupNotify=true
+EOF
+
+if [[ "$SAVE" == true ]]; then
+  cfg="$HOME/.config/pzget"
+  mkdir -p "$cfg"
+  store="$cfg/webapps.toml"
+  # Escape double quotes for TOML.
+  esc_name="${NAME//\"/\\\"}"
+  {
+    echo "[[webapps]]"
+    echo "name = \"$esc_name\""
+    echo "url = \"$URL\""
+    echo
+  } >>"$store"
+fi
+
+command -v notify-send >/dev/null 2>&1 && \
+  notify-send -i "$icon_path" "pzget" "Webapp creada: $NAME" 2>/dev/null || true
+
+echo "$desktop"

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# pzget-search — universal package search across Arch repos + AUR.
+#
+# Type to search; results come live from `yay -Ssq` (repos + AUR). An empty
+# query lists all repo packages. Tab multi-selects; Enter installs with yay.
+# Meant to run inside a terminal (pzget launches it for you).
+set -uo pipefail
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "pzget-search: fzf is required" >&2; exit 1
+fi
+if ! command -v yay >/dev/null 2>&1; then
+  echo "pzget-search: yay is required" >&2; exit 1
+fi
+
+header='Type to search repos + AUR · Tab: multi-select · Enter: install · Esc: cancel'
+
+selection="$(
+  : | fzf \
+    --disabled \
+    --multi \
+    --prompt 'pzget » ' \
+    --header "$header" \
+    --bind 'start:reload:pacman -Slq' \
+    --bind 'change:reload:sleep 0.2; [ -z {q} ] && pacman -Slq || yay -Ssq {q} 2>/dev/null | sort -u' \
+    --preview 'yay -Sii {1} 2>/dev/null || pacman -Sii {1} 2>/dev/null' \
+    --preview-window 'right:60%:wrap' \
+    --bind 'alt-p:toggle-preview' \
+    --color 'pointer:green,marker:green'
+)"
+
+[[ -z "$selection" ]] && { echo "Nada seleccionado."; exit 0; }
+
+# shellcheck disable=SC2086
+pkgs="$(echo "$selection" | tr '\n' ' ')"
+echo "Instalando: $pkgs"
+yay -S --needed $pkgs

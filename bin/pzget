@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# pzget — graphical app/webapp installer menu (fuzzel dmenu).
+#
+# Main menu: your curated categories + "Search everything" + "Add webapp".
+# Pick a category -> pick an app -> it installs (pacman/yay) or creates a
+# webapp. Installed items are marked with a check.
+set -uo pipefail
+
+BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+CATALOG="$BIN_DIR/pzget-catalog"
+WEBAPP_ADD="$BIN_DIR/pzget-webapp-add"
+SEARCH="$BIN_DIR/pzget-search"
+
+CHECK="✓"
+SEARCH_LABEL="🔍  Search everything (repos + AUR)"
+ADD_LABEL="➕  Add a webapp"
+
+menu() { # prompt < lines-on-stdin -> selected line
+  fuzzel --dmenu --prompt "$1 " --width 50 2>/dev/null
+}
+
+# Open a floating terminal running a command, then pause so output is visible.
+term_run() {
+  local title="$1" cmd="$2"
+  local wrapped="$cmd; printf '\n\033[1;32m[pzget]\033[0m Listo. Pulsa Enter para cerrar…'; read -r"
+  if command -v kitty >/dev/null 2>&1; then
+    setsid kitty --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
+  elif command -v foot >/dev/null 2>&1; then
+    setsid foot --title "$title" bash -lc "$wrapped" >/dev/null 2>&1 &
+  elif command -v xdg-terminal-exec >/dev/null 2>&1; then
+    setsid xdg-terminal-exec bash -lc "$wrapped" >/dev/null 2>&1 &
+  else
+    echo "pzget: no supported terminal found" >&2; return 1
+  fi
+}
+
+is_installed() { # source target -> 0 if installed
+  case "$1" in
+    repo|aur) pacman -Qq "$2" >/dev/null 2>&1 ;;
+    webapp)
+      local slug
+      slug="$(echo "${WEBAPP_NAME:-}" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
+      [[ -f "$HOME/.local/share/applications/pzget-$slug.desktop" ]] ;;
+    *) return 1 ;;
+  esac
+}
+
+install_app() { # name source target
+  local name="$1" source="$2" target="$3"
+  case "$source" in
+    repo)
+      term_run "pzget · $name" "sudo pacman -S --needed '$target'" ;;
+    aur)
+      term_run "pzget · $name" "yay -S --needed '$target'" ;;
+    webapp)
+      "$WEBAPP_ADD" --name "$name" --url "$target" --no-save >/dev/null ;;
+    *) echo "pzget: unknown source '$source'" >&2; return 1 ;;
+  esac
+}
+
+show_category() { # category-id category-name
+  local cid="$1" cname="$2"
+  declare -A ACTION
+  local display=""
+  while IFS=$'\t' read -r name source target desc; do
+    [[ -z "$name" ]] && continue
+    local mark="   "
+    WEBAPP_NAME="$name"
+    if is_installed "$source" "$target"; then mark=" $CHECK "; fi
+    local line="$mark$name"
+    [[ -n "$desc" ]] && line="$line  —  $desc"
+    display+="$line"$'\n'
+    ACTION["$line"]="$name"$'\t'"$source"$'\t'"$target"
+  done < <("$CATALOG" apps "$cid")
+
+  [[ -z "$display" ]] && { notify-send "pzget" "Categoría vacía: $cname" 2>/dev/null; return; }
+
+  local chosen
+  chosen="$(printf '%s' "$display" | menu "$cname »")"
+  [[ -z "$chosen" ]] && return
+
+  local act="${ACTION[$chosen]:-}"
+  [[ -z "$act" ]] && return
+  IFS=$'\t' read -r a_name a_source a_target <<<"$act"
+  install_app "$a_name" "$a_source" "$a_target"
+}
+
+main_menu() {
+  declare -A CATNAME
+  local lines=""
+  while IFS=$'\t' read -r cid cname; do
+    [[ -z "$cid" ]] && continue
+    CATNAME["$cname"]="$cid"
+    lines+="$cname"$'\n'
+  done < <("$CATALOG" categories)
+
+  lines+="$SEARCH_LABEL"$'\n'"$ADD_LABEL"
+
+  local chosen
+  chosen="$(printf '%s' "$lines" | menu "pzget »")"
+  [[ -z "$chosen" ]] && exit 0
+
+  case "$chosen" in
+    "$SEARCH_LABEL")
+      term_run "pzget · search" "$SEARCH" ;;
+    "$ADD_LABEL")
+      "$WEBAPP_ADD" ;;
+    *)
+      local cid="${CATNAME[$chosen]:-}"
+      [[ -n "$cid" ]] && show_category "$cid" "$chosen" ;;
+  esac
+}
+
+main_menu

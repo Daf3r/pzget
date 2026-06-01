@@ -1,0 +1,92 @@
+# pzget catalog — your curated apps & webapps
+#
+# Structure:
+#   [[categories]]            one block per category
+#   id   = "dev"              stable internal id (no spaces)
+#   name = "Development"      shown in the menu
+#
+#     [[categories.apps]]     one block per app inside the category
+#     name   = "Neovim"       shown in the menu
+#     source = "repo"         repo | aur | webapp
+#     pkg    = "neovim"       package name  (for source = repo | aur)
+#     url    = "https://..."  web address   (for source = webapp)
+#     desc   = "..."          short one-line description (optional)
+#
+# User-added webapps live in ~/.config/pzget/webapps.toml and are merged
+# automatically as a "Webapps" category — you don't edit those here.
+
+[[categories]]
+id = "dev"
+name = "Development"
+
+  [[categories.apps]]
+  name = "Neovim"
+  source = "repo"
+  pkg = "neovim"
+  desc = "Hyperextensible Vim-based text editor"
+
+  [[categories.apps]]
+  name = "Visual Studio Code"
+  source = "aur"
+  pkg = "visual-studio-code-bin"
+  desc = "Microsoft's code editor (official binary)"
+
+  [[categories.apps]]
+  name = "Zed"
+  source = "repo"
+  pkg = "zed"
+  desc = "High-performance multiplayer code editor"
+
+  [[categories.apps]]
+  name = "lazygit"
+  source = "repo"
+  pkg = "lazygit"
+  desc = "Simple terminal UI for git commands"
+
+[[categories]]
+id = "media"
+name = "Media"
+
+  [[categories.apps]]
+  name = "mpv"
+  source = "repo"
+  pkg = "mpv"
+  desc = "Minimalist media player"
+
+  [[categories.apps]]
+  name = "Spotify"
+  source = "aur"
+  pkg = "spotify"
+  desc = "Music streaming (official client)"
+
+[[categories]]
+id = "gaming"
+name = "Gaming"
+
+  [[categories.apps]]
+  name = "Steam"
+  source = "repo"
+  pkg = "steam"
+  desc = "Valve's game store and launcher"
+
+  [[categories.apps]]
+  name = "Lutris"
+  source = "repo"
+  pkg = "lutris"
+  desc = "Open gaming platform for Linux"
+
+[[categories]]
+id = "web"
+name = "Webapps (curated)"
+
+  [[categories.apps]]
+  name = "YouTube"
+  source = "webapp"
+  url = "https://youtube.com"
+  desc = "Video platform"
+
+  [[categories.apps]]
+  name = "ChatGPT"
+  source = "webapp"
+  url = "https://chatgpt.com"
+  desc = "OpenAI chat"
