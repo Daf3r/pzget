@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# pzget-pkg-remove — uninstall any installed app.
+#
+# Lists explicitly-installed Arch/AUR packages plus pzget webapps in an fzf
+# picker; removes packages with `pacman -Rns` and webapps by deleting their
+# .desktop/icon (and their entry in webapps.toml). Meant to run in a terminal.
+set -uo pipefail
+
+if ! command -v fzf >/dev/null 2>&1; then
+  echo "pzget: fzf is required" >&2; exit 75
+fi
+
+apps_dir="$HOME/.local/share/applications"
+icon_dir="$HOME/.local/share/pzget/icons"
+
+# Each line: <display>\t<action>   (action = pkg:NAME | webapp:SLUG)
+build_list() {
+  pacman -Qqe 2>/dev/null | while read -r p; do
+    printf '%s\tpkg:%s\n' "$p" "$p"
+  done
+  for d in "$apps_dir"/pzget-*.desktop; do
+    [ -e "$d" ] || continue
+    local slug name
+    slug="$(basename "$d" .desktop)"; slug="${slug#pzget-}"
+    name="$(sed -n 's/^Name=//p' "$d" | head -1)"
+    printf '🌐 %s (web)\twebapp:%s\n' "${name:-$slug}" "$slug"
+  done
+}
+
+selection="$(
+  build_list | fzf \
+    --multi \
+    --delimiter='\t' \
+    --with-nth=1 \
+    --prompt 'eliminar » ' \
+    --header 'DESINSTALAR · Tab: marcar varios · Enter: eliminar · Esc: cancelar' \
+    --preview 'a={2}; case "$a" in pkg:*) pacman -Qi "${a#pkg:}";; *) echo "Webapp creada con pzget";; esac' \
+    --preview-window 'down:60%:wrap' \
+    --bind 'alt-p:toggle-preview' \
+    --color 'pointer:red,marker:red'
+)"
+
+[[ -z "$selection" ]] && exit 75   # cancelado -> cerrar la terminal
+
+pkgs=()
+while IFS=$'\t' read -r _disp action; do
+  [ -z "$action" ] && continue
+  case "$action" in
+    pkg:*) pkgs+=("${action#pkg:}") ;;
+    webapp:*)
+      slug="${action#webapp:}"
+      rm -f "$apps_dir/pzget-$slug.desktop" "$icon_dir/$slug".*
+      echo "Webapp eliminada: $slug"
+      # Drop it from webapps.toml too, if it was saved there.
+      python3 - "$slug" <<'PY' 2>/dev/null || true
+import sys, re, tomllib
+from pathlib import Path
+slug = sys.argv[1]
+p = Path.home() / ".config/pzget/webapps.toml"
+if not p.exists():
+    raise SystemExit
+def slugify(n):
+    return re.sub(r"[^a-z0-9-]", "", n.lower().replace(" ", "-"))
+data = tomllib.loads(p.read_text())
+keep = [w for w in data.get("webapps", []) if slugify(w.get("name", "")) != slug]
+with open(p, "w") as f:
+    for w in keep:
+        f.write("[[webapps]]\n")
+        f.write(f'name = "{w["name"]}"\n')
+        f.write(f'url = "{w["url"]}"\n\n')
+PY
+      ;;
+  esac
+done <<< "$selection"
+
+if [ ${#pkgs[@]} -gt 0 ]; then
+  echo "Desinstalando: ${pkgs[*]}"
+  sudo pacman -Rns --noconfirm "${pkgs[@]}"
+fi

@@ -11,6 +11,7 @@ BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 CATALOG="$BIN_DIR/pzget-catalog"
 WEBAPP_ADD="$BIN_DIR/pzget-webapp-add"
 PKG_PICK="$BIN_DIR/pzget-pkg-pick"
+PKG_REMOVE="$BIN_DIR/pzget-pkg-remove"
 
 menu() { # prompt < lines-on-stdin -> selected line
   fuzzel --dmenu --prompt "$1 " --width 52 2>/dev/null
@@ -19,7 +20,9 @@ menu() { # prompt < lines-on-stdin -> selected line
 # Open a floating terminal running a command, then pause so output is visible.
 term_run() {
   local title="$1" cmd="$2"
-  local wrapped="$cmd; printf '\n\033[1;32m[pzget]\033[0m Listo. Pulsa Enter para cerrar…'; read -r"
+  # Exit code 75 = "cancelled" -> close immediately; otherwise pause so the
+  # user can read the output before the window closes.
+  local wrapped="$cmd; __pz_rc=\$?; if [ \$__pz_rc -ne 75 ]; then printf '\n\033[1;32m[pzget]\033[0m Listo. Pulsa Enter para cerrar…'; read -r; fi"
   # app-id "pzget" lets the WM float + center this window (see hypr rules).
   # Terminals ignore Hyprland's `size` rule, so we ask them to open at a modest
   # size directly (≈half the screen).
@@ -117,6 +120,7 @@ main_menu() {
   add_entry "📥" "AUR"            "programas de la comunidad"          "src"$'\t'"aur"$'\t'"AUR"
   add_entry "🌐" "Apps web"       "YouTube, ChatGPT…"                  "src"$'\t'"webapp"$'\t'"Apps web"
   add_entry "➕" "Crear app web"  "convierte un sitio web en app"      "add"
+  add_entry "🗑️" "Eliminar app"   "desinstala programas o webapps"     "remove"
 
   local chosen
   chosen="$(printf '%s' "$lines" | menu "pzget »")"
@@ -128,6 +132,7 @@ main_menu() {
   local kind="${act%%$'\t'*}"
   case "$kind" in
     add) "$WEBAPP_ADD" ;;
+    remove) term_run "pzget · eliminar" "$PKG_REMOVE" ;;
     src)
       local rest source title
       rest="${act#src$'\t'}"

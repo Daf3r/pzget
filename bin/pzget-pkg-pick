@@ -41,7 +41,7 @@ selection="$(
     --color 'pointer:green,marker:green'
 )"
 
-[[ -z "$selection" ]] && { echo "Nada seleccionado."; exit 0; }
+[[ -z "$selection" ]] && exit 75   # cancelado -> que la terminal se cierre sola
 
 echo "Instalando: $(echo "$selection" | tr '\n' ' ')"
 if [[ "$src" == aur ]]; then
