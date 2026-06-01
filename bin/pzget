@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # pzget — graphical app/webapp installer menu (fuzzel dmenu).
 #
-# A curated catalog only (omarchy-style): pick a category -> pick an app ->
-# it installs automatically (pacman/yay) or creates a webapp. No package
-# searching; the catalog is the list. Installed items are marked with a check.
+# Organised by source (omarchy-style, catalog only — no package searching):
+#   📦 Arch (oficial)  ·  📥 AUR  ·  🌐 Apps web  ·  ➕ Crear app web
+# Pick a source -> pick an app -> it installs automatically. Installed items
+# are marked with a check.
 set -uo pipefail
 
 BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -11,7 +12,7 @@ CATALOG="$BIN_DIR/pzget-catalog"
 WEBAPP_ADD="$BIN_DIR/pzget-webapp-add"
 
 menu() { # prompt < lines-on-stdin -> selected line
-  fuzzel --dmenu --prompt "$1 " --width 50 2>/dev/null
+  fuzzel --dmenu --prompt "$1 " --width 52 2>/dev/null
 }
 
 # Open a floating terminal running a command, then pause so output is visible.
@@ -53,11 +54,12 @@ install_app() { # name source target
   esac
 }
 
-show_category() { # category-id category-name
-  local cid="$1" cname="$2"
+# List every app of a source and install the chosen one.
+show_source() { # source title
+  local source="$1" title="$2"
   declare -A ACTION=()
   local lines=""
-  while IFS=$'\t' read -r name source target desc; do
+  while IFS=$'\t' read -r name target desc; do
     [[ -z "$name" ]] && continue
     local label
     WEBAPP_NAME="$name"
@@ -66,60 +68,54 @@ show_category() { # category-id category-name
     else
       label="$(printf '     %-20s  ·  %s' "$name" "$desc")"
     fi
-    ACTION["$label"]="$name"$'\t'"$source"$'\t'"$target"
+    ACTION["$label"]="$name"$'\t'"$target"
     lines+="$label"$'\n'
-  done < <("$CATALOG" apps "$cid")
+  done < <("$CATALOG" source "$source")
 
-  [[ -z "$lines" ]] && { notify-send "pzget" "Categoría vacía: $cname" 2>/dev/null; return; }
+  [[ -z "$lines" ]] && { notify-send "pzget" "Sin apps en $title" 2>/dev/null; return; }
 
   local chosen
-  chosen="$(printf '%s' "$lines" | menu "$cname »")"
+  chosen="$(printf '%s' "$lines" | menu "$title »")"
   [[ -z "$chosen" ]] && return
 
   local act="${ACTION[$chosen]:-}"
   [[ -z "$act" ]] && return
-  IFS=$'\t' read -r a_name a_source a_target <<<"$act"
-  install_app "$a_name" "$a_source" "$a_target"
+  IFS=$'\t' read -r a_name a_target <<<"$act"
+  install_app "$a_name" "$source" "$a_target"
 }
 
 main_menu() {
-  while true; do
-    declare -A ACTION=()
-    local lines="  Categorías"$'\n\n'
+  declare -A ACTION=()
+  local lines=""
+  add_entry() { # icon  name  blurb  action
+    local label
+    label="$(printf '  %s  %-15s  %s' "$1" "$2" "$3")"
+    ACTION["$label"]="$4"
+    lines+="$label"$'\n'
+  }
 
-    while IFS=$'\t' read -r cid cname icon blurb; do
-      [[ -z "$cid" ]] && continue
-      local label
-      label="$(printf '  %s  %-12s  %s' "$icon" "$cname" "$blurb")"
-      ACTION["$label"]="cat"$'\t'"$cid"$'\t'"$cname"
-      lines+="$label"$'\n'
-    done < <("$CATALOG" categories)
+  add_entry "📦" "Arch (oficial)" "programas del repositorio oficial" "src"$'\t'"repo"$'\t'"Arch (oficial)"
+  add_entry "📥" "AUR"            "programas de la comunidad"          "src"$'\t'"aur"$'\t'"AUR"
+  add_entry "🌐" "Apps web"       "YouTube, ChatGPT…"                  "src"$'\t'"webapp"$'\t'"Apps web"
+  add_entry "➕" "Crear app web"  "convierte un sitio web en app"      "add"
 
-    lines+=$'\n'"  Acciones"$'\n\n'
-    local addlbl
-    addlbl="$(printf '  %s  %-12s  %s' "➕" "Crear app web" "convierte un sitio en app")"
-    ACTION["$addlbl"]="add"
-    lines+="$addlbl"
+  local chosen
+  chosen="$(printf '%s' "$lines" | menu "pzget »")"
+  [[ -z "$chosen" ]] && exit 0
 
-    local chosen
-    chosen="$(printf '%s' "$lines" | menu "pzget »")"
-    [[ -z "$chosen" ]] && exit 0
+  local act="${ACTION[$chosen]:-}"
+  [[ -z "$act" ]] && exit 0
 
-    local act="${ACTION[$chosen]:-}"
-    [[ -z "$act" ]] && continue   # encabezado o línea vacía -> reabrir menú
-
-    local kind rest cid cname
-    kind="${act%%$'\t'*}"
-    case "$kind" in
-      add) "$WEBAPP_ADD"; exit 0 ;;
-      cat)
-        rest="${act#cat$'\t'}"
-        cid="${rest%%$'\t'*}"
-        cname="${rest#*$'\t'}"
-        show_category "$cid" "$cname"
-        exit 0 ;;
-    esac
-  done
+  local kind="${act%%$'\t'*}"
+  case "$kind" in
+    add) "$WEBAPP_ADD" ;;
+    src)
+      local rest source title
+      rest="${act#src$'\t'}"
+      source="${rest%%$'\t'*}"
+      title="${rest#*$'\t'}"
+      show_source "$source" "$title" ;;
+  esac
 }
 
 main_menu

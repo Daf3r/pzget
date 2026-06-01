@@ -12,9 +12,9 @@ any Arch setup with `fuzzel` and `yay`.
 
 ## Features
 
-- **Curated catalog** — your hand-picked apps grouped by category with icons and
-  plain-language hints, defined in a simple `catalog.toml`. Installed items are
-  marked with a check.
+- **Organised by source** — the main menu is the sources themselves: 📦 Arch
+  (official repos), 📥 AUR, 🌐 web apps. You always know where each app comes
+  from. The catalog lives in a simple `catalog.toml`; installed items show a check.
 - **Unattended installs** — pacman/AUR packages install with no prompts at all
   (no cleanBuild/diff menus); only your sudo password is asked once.
 - **Webapps** — turn any URL into a desktop app (`chromium --app`) with an

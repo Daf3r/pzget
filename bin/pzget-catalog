@@ -9,6 +9,9 @@ Commands:
   pzget-catalog apps <category-id>
       -> one line per app:       <name>\t<source>\t<target>\t<desc>
          where <target> is the package name (repo/aur) or url (webapp)
+  pzget-catalog source <repo|aur|webapp>
+      -> every app of that source, across all categories:
+         <name>\t<target>\t<desc>
 
 Catalog sources, merged in order:
   1. $PZGET_CATALOG or ~/.config/pzget/catalog.toml   (user override, optional)
@@ -84,6 +87,18 @@ def cmd_apps(cats: list[dict], cid: str) -> None:
         return
 
 
+def cmd_source(cats: list[dict], src: str) -> None:
+    for c in cats:
+        for a in c.get("apps", []):
+            if a.get("source", "repo") != src:
+                continue
+            target = a.get("url", "") if src == "webapp" else a.get("pkg", "")
+            name = a.get("name", target)
+            if not name or not target:
+                continue
+            print(f"{name}\t{target}\t{a.get('desc', '')}")
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         sys.stderr.write("usage: pzget-catalog <categories|apps CATEGORY_ID>\n")
@@ -97,6 +112,11 @@ def main() -> int:
             sys.stderr.write("usage: pzget-catalog apps CATEGORY_ID\n")
             return 2
         cmd_apps(cats, sys.argv[2])
+    elif cmd == "source":
+        if len(sys.argv) < 3:
+            sys.stderr.write("usage: pzget-catalog source SOURCE\n")
+            return 2
+        cmd_source(cats, sys.argv[2])
     else:
         sys.stderr.write(f"pzget-catalog: unknown command '{cmd}'\n")
         return 2
