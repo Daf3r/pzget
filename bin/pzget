@@ -49,9 +49,9 @@ install_app() { # name source target
   local name="$1" source="$2" target="$3"
   case "$source" in
     repo)
-      term_run "pzget · $name" "sudo pacman -S --needed '$target'" ;;
+      term_run "pzget · $name" "sudo pacman -S --needed --noconfirm '$target'" ;;
     aur)
-      term_run "pzget · $name" "yay -S --needed '$target'" ;;
+      term_run "pzget · $name" "yay -S --needed --noconfirm --answerdiff=None --answerclean=None --removemake '$target'" ;;
     webapp)
       "$WEBAPP_ADD" --name "$name" --url "$target" --no-save >/dev/null ;;
     *) echo "pzget: unknown source '$source'" >&2; return 1 ;;

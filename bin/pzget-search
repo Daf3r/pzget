@@ -34,4 +34,4 @@ selection="$(
 # shellcheck disable=SC2086
 pkgs="$(echo "$selection" | tr '\n' ' ')"
 echo "Instalando: $pkgs"
-yay -S --needed $pkgs
+yay -S --needed --noconfirm --answerdiff=None --answerclean=None --removemake $pkgs
