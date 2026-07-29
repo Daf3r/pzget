@@ -1,57 +1,108 @@
 #!/usr/bin/env bash
 # pzget-pkg-pick SOURCE   (SOURCE = repo | aur)
-# omarchy-style fzf package picker, scoped to one source. Lists every package
-# of that source so you can filter and install any of them. Meant to run inside
-# a terminal (pzget launches it for you).
+#
+# fzf package picker scoped to one source. Meant to run inside a terminal
+# (pzget launches it for you).
+#
+# Both modes show the package DESCRIPTION next to the name, which is the whole
+# point of this rewrite: the previous version listed bare names only, so you
+# could only find a package if you already knew what it was called. Typing
+# "reproductor de video" found nothing; now it finds mpv, vlc and friends.
+#
+#   repo : `expac -S` dumps all ~23k packages with descriptions in ~0.2 s, so
+#          the list is built once up front and fzf filters it locally.
+#   aur  : searched LIVE via the AUR RPC as you type. Listing all ~90k AUR
+#          names up front is slow and still gives no descriptions; the RPC
+#          returns descriptions *and* vote counts, and votes are what let you
+#          tell the real package from its near-identical forks.
 set -uo pipefail
 
 BIN_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 # shellcheck source=/dev/null
 . "$BIN_DIR/pzget-i18n"
 
+AUR_SEARCH="$BIN_DIR/pzget-aur-search"
+
 src="${1:-repo}"
 
-if ! command -v fzf >/dev/null 2>&1; then
-  echo "pzget: fzf is required for package search" >&2; exit 1
-fi
+need() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "pzget: '$1' $(t need_missing)" >&2
+    exit 1
+  }
+}
+
+need fzf
+
+# Shared look & bindings. --delimiter + --with-nth show the padded columns
+# while {1} still resolves to the bare package name for preview and install.
+fzf_common=(
+  --multi
+  --delimiter '\t'
+  --with-nth '2'
+  --preview-window 'down:55%:wrap'
+  --bind 'alt-p:toggle-preview'
+  --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up'
+  --color 'pointer:green,marker:green'
+)
 
 case "$src" in
   repo)
+    need expac
     title="$(t arch_name)"
-    mapfile -t names < <(pacman -Slq)
-    preview='pacman -Sii {1}'
+    # pzget-pkg-list emits 3 columns: bare name / display / hidden keywords.
+    # --nth '2,3' searches the description AND the Spanish keywords, while
+    # --with-nth '2' keeps the keywords out of sight. That is what makes
+    # "reproductor" find mpv even though its description is English.
+    selection="$(
+      "$BIN_DIR/pzget-pkg-list" repo 2>/dev/null \
+        | fzf "${fzf_common[@]}" \
+            --nth '2,3' \
+            --prompt "$(t pick_in) $title » " \
+            --header "$(t pick_header)" \
+            --preview 'pacman -Sii {1}' \
+        | cut -f1
+    )"
     ;;
+
   aur)
-    if ! command -v yay >/dev/null 2>&1; then
-      echo "pzget: yay is required for AUR" >&2; exit 1
-    fi
+    need yay
     title="$(t aur_name)"
-    mapfile -t names < <(yay -Slqa)
-    preview='yay -Siia {1} 2>/dev/null'
+
+    # Seed the picker with the AUR favourites from the catalog, so it opens
+    # on something useful instead of an empty box. As soon as you type, the
+    # `change` binding replaces them with live AUR results.
+    seed="$(
+      "$BIN_DIR/pzget-catalog" source aur 2>/dev/null \
+        | awk -F'\t' 'NF>=2 && $2!="" {printf "%s\t★ %-30s %s\n", $2, $2, $3}'
+    )"
+
+    # --disabled turns off fzf's own filtering so every keystroke re-queries
+    # the AUR instead of narrowing a stale local list.
+    selection="$(
+      printf '%s\n' "$seed" | fzf "${fzf_common[@]}" \
+        --disabled \
+        --prompt "$(t pick_in) $title » " \
+        --header "$(t pick_header_aur)" \
+        --bind "change:reload:$AUR_SEARCH {q} | awk -F'\t' '{printf \"%s\t%-30s %5s ★  %s\n\", \$1, \$1, \$2, \$3}'" \
+        --preview 'yay -Sii {1} 2>/dev/null' \
+        | cut -f1
+    )"
     ;;
+
   *)
     echo "pzget-pkg-pick: unknown source '$src' (use repo|aur)" >&2; exit 1 ;;
 esac
 
-selection="$(
-  printf '%s\n' "${names[@]}" | fzf \
-    --multi \
-    --prompt "$(t pick_in) $title » " \
-    --header "$(t pick_header)" \
-    --preview "$preview" \
-    --preview-window 'down:60%:wrap' \
-    --bind 'alt-p:toggle-preview' \
-    --bind 'alt-d:preview-half-page-down,alt-u:preview-half-page-up' \
-    --color 'pointer:green,marker:green'
-)"
+# Exit code 75 tells pzget's terminal wrapper to close without pausing.
+[[ -z "$selection" ]] && exit 75
 
-[[ -z "$selection" ]] && exit 75   # cancelado -> que la terminal se cierre sola
+mapfile -t picks <<<"$selection"
+echo "$(t installing) ${picks[*]}"
 
-echo "$(t installing) $(echo "$selection" | tr '\n' ' ')"
 if [[ "$src" == aur ]]; then
-  echo "$selection" | sed 's#^#aur/#' | tr '\n' ' ' \
+  printf 'aur/%s\n' "${picks[@]}" \
     | xargs yay -S --needed --noconfirm --answerdiff=None --answerclean=None --removemake
 else
-  # shellcheck disable=SC2046
-  sudo pacman -S --needed --noconfirm $(echo "$selection" | tr '\n' ' ')
+  sudo pacman -S --needed --noconfirm "${picks[@]}"
 fi

@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""pzget-pkg-list [SOURCE] — build the searchable package list for the picker.
+
+SOURCE (repo | aur, default repo) only decides which catalog favourites get
+pinned at the top; the package listing itself is always the official repos.
+
+Emits three tab-separated columns:
+
+    <name>\t<what the user sees>\t<hidden search keywords>
+
+Column 1 is the bare package name (fzf's {1}, used for preview and install),
+column 2 is displayed, column 3 is searched but never shown
+(fzf --nth vs --with-nth).
+
+Two things live in column 3:
+
+  * Spanish keywords. Arch descriptions are written in English, so searching
+    "reproductor" over them matches nothing. share/synonyms-es.tsv maps English
+    patterns to Spanish words, attached here so the picker works in either
+    language without cluttering the display.
+  * "favorito favourite" on catalog entries, so typing either word narrows the
+    list to your curated picks.
+
+Catalog favourites are printed first and marked, which is what lets the menu
+jump straight to this picker instead of showing a separate curated list.
+"""
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SYNONYMS = REPO_ROOT / "share" / "synonyms-es.tsv"
+CATALOG = REPO_ROOT / "bin" / "pzget-catalog"
+
+
+def load_synonyms() -> list[tuple[re.Pattern, str]]:
+    rules: list[tuple[re.Pattern, str]] = []
+    try:
+        text = SYNONYMS.read_text(encoding="utf-8")
+    except OSError:
+        return rules
+
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "\t" not in line:
+            continue
+        pattern, keywords = line.split("\t", 1)
+        try:
+            rules.append((re.compile(pattern.strip(), re.I), keywords.strip()))
+        except re.error:
+            continue  # a bad row must not take the whole picker down
+    return rules
+
+
+def installed_packages() -> set[str]:
+    try:
+        out = subprocess.run(
+            ["pacman", "-Qq"], capture_output=True, text=True, timeout=15, check=False
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    return set(out.split())
+
+
+def catalog_picks(source: str) -> list[tuple[str, str]]:
+    """[(package, description)] for the given source, from the user's catalog."""
+    try:
+        out = subprocess.run(
+            [str(CATALOG), "source", source],
+            capture_output=True, text=True, timeout=15, check=False,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+
+    picks: list[tuple[str, str]] = []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[1]:
+            picks.append((parts[1], parts[2] if len(parts) > 2 else ""))
+    return picks
+
+
+def main() -> int:
+    source = sys.argv[1] if len(sys.argv) > 1 else "repo"
+
+    try:
+        out = subprocess.run(
+            ["expac", "-S", "%n\t%d"],
+            capture_output=True, text=True, timeout=30, check=False,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return 1
+
+    rules = load_synonyms()
+    installed = installed_packages()
+    seen: set[str] = set()
+
+    # Favourites first, so the list opens on your curated picks.
+    for name, desc in catalog_picks(source):
+        if name in seen:
+            continue
+        seen.add(name)
+        mark = "✓" if name in installed else "★"
+        print(f"{name}\t{mark} {name:<30} {desc}\tfavorito favourite")
+
+    for line in out.splitlines():
+        name, _, desc = line.partition("\t")
+        if not name or name in seen:
+            continue
+        extra = " ".join(kw for pat, kw in rules if pat.search(desc))
+        mark = "✓" if name in installed else " "
+        print(f"{name}\t{mark} {name:<30} {desc}\t{extra}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

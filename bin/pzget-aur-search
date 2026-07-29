@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""pzget-aur-search QUERY — search the AUR, newest RPC (v5).
+
+Emits tab-separated lines so fzf can filter and pzget can extract the name:
+
+    <name>\t<votes>\t<description>
+
+Why an RPC search instead of listing every package: `yay -Slqa` returns ~90k
+bare names with no descriptions, so you can only find a package if you already
+know what it is called. The RPC returns descriptions *and* vote counts, which
+is what lets you tell `spotify` (271 votes) from `spotify-adblock-git` (64).
+
+Results are sorted by votes: the popular package is almost always the one you
+want, and it should not be buried under near-identical forks.
+"""
+import json
+import sys
+import urllib.parse
+import urllib.request
+
+RPC = "https://aur.archlinux.org/rpc/v5/search/"
+TIMEOUT = 8
+MAX_RESULTS = 200
+
+
+def main() -> int:
+    query = " ".join(sys.argv[1:]).strip()
+    # The RPC rejects very short queries; nothing to show yet either way.
+    if len(query) < 2:
+        return 0
+
+    url = RPC + urllib.parse.quote(query, safe="")
+    try:
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as fh:
+            data = json.load(fh)
+    except Exception:
+        # Offline or the AUR is down: stay silent rather than filling the
+        # picker with an error line that could be "installed" by accident.
+        return 0
+
+    results = data.get("results") or []
+    results.sort(key=lambda r: -(r.get("NumVotes") or 0))
+
+    for r in results[:MAX_RESULTS]:
+        name = r.get("Name") or ""
+        votes = r.get("NumVotes") or 0
+        desc = (r.get("Description") or "").replace("\t", " ").strip()
+        if r.get("OutOfDate"):
+            desc = "[desactualizado] " + desc
+        print(f"{name}\t{votes}\t{desc}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

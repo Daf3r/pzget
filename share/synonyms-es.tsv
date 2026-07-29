@@ -1,0 +1,99 @@
+# pzget — Spanish search keywords.
+#
+# Arch package descriptions are written in English, so searching "reproductor"
+# over them returns nothing. Each row below attaches extra Spanish keywords to
+# any package whose description matches the English pattern, so the picker can
+# be searched in either language.
+#
+# Format:  <english regex, case-insensitive>  TAB  <spanish keywords>
+# The keywords are searchable but NOT displayed (fzf --nth vs --with-nth).
+
+media player	reproductor multimedia video musica peliculas
+video player	reproductor de video peliculas
+music player	reproductor de musica audio canciones
+audio player	reproductor de audio musica sonido
+web browser	navegador web internet
+browser	navegador
+text editor	editor de texto escribir
+code editor	editor de codigo programar desarrollo
+image editor	editor de imagenes fotos dibujo retoque
+image viewer	visor de imagenes fotos
+photo	fotos imagenes fotografia
+screenshot	captura de pantalla pantallazo
+screen recorder	grabador de pantalla grabar video
+file manager	gestor de archivos explorador ficheros carpetas
+archive manager	gestor de archivos comprimidos zip rar
+terminal emulator	terminal consola emulador
+email client	cliente de correo email mensajeria
+chat	chat mensajeria conversacion
+instant messaging	mensajeria instantanea chat
+video conferencing	videollamada videoconferencia reuniones
+password manager	gestor de contrasenas claves seguridad
+virtual machine	maquina virtual virtualizacion emulador
+container	contenedor contenedores docker
+game	juego juegos videojuego entretenimiento
+emulator	emulador consola retro
+office suite	suite ofimatica ofimatica documentos
+spreadsheet	hoja de calculo excel calculo tablas
+presentation	presentacion diapositivas
+pdf	pdf documentos lector
+document viewer	visor de documentos lector pdf
+torrent	torrent descargas p2p descargar
+download manager	gestor de descargas descargar
+backup	copia de seguridad respaldo backup
+disk usage	uso de disco espacio almacenamiento
+partition	particiones disco particionar
+system monitor	monitor del sistema recursos rendimiento procesos
+task manager	administrador de tareas procesos
+firewall	cortafuegos firewall seguridad red
+vpn	vpn red privada seguridad conexion
+network manager	gestor de red conexion wifi internet
+bluetooth	bluetooth inalambrico dispositivos
+printer	impresora imprimir impresion
+scanner	escaner escanear digitalizar
+calculator	calculadora calcular
+calendar	calendario agenda eventos citas
+note	notas apuntes anotaciones
+todo	tareas pendientes lista
+clipboard	portapapeles copiar pegar
+launcher	lanzador menu aplicaciones
+wallpaper	fondo de pantalla escritorio
+theme	tema apariencia estilo
+icon	iconos apariencia
+font	fuente tipografia letras
+compositor	compositor escritorio ventanas
+window manager	gestor de ventanas escritorio
+status bar	barra de estado panel
+notification	notificaciones avisos
+audio	audio sonido
+sound	sonido audio volumen
+volume	volumen sonido audio
+microphone	microfono grabar voz
+webcam	camara webcam video
+video editor	editor de video montaje edicion
+audio editor	editor de audio sonido edicion
+3d	3d modelado tridimensional
+cad	cad diseno tecnico planos
+vector graphics	graficos vectoriales dibujo diseno
+paint	dibujo pintura dibujar
+version control	control de versiones git repositorio
+database	base de datos datos sql
+sql	sql base de datos consultas
+web server	servidor web http
+compiler	compilador compilar programar
+debugger	depurador debug errores
+benchmark	prueba de rendimiento benchmark medir
+ocr	ocr reconocimiento de texto escanear
+translation	traduccion traductor idiomas
+dictionary	diccionario palabras idioma
+weather	clima tiempo meteorologia
+music streaming	musica en linea streaming canciones
+video streaming	video en linea streaming peliculas
+podcast	podcast audio programas
+ebook	libro electronico ebook lectura
+comic	comic manga historieta
+rss	rss noticias feeds
+markdown	markdown texto notas documentacion
+latex	latex documentos academico
+encryption	cifrado encriptar seguridad
+antivirus	antivirus virus seguridad

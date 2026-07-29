@@ -47,12 +47,30 @@ apps_dir="$HOME/.local/share/applications"
 mkdir -p "$icon_dir" "$apps_dir"
 
 # Pick a chromium-family browser for --app mode.
+#
+# The list needs the real *binary* names, which often differ from the brand:
+# Brave alone ships as brave, brave-browser, brave-bin and brave-origin
+# depending on the package. Missing a variant silently broke web app creation
+# on systems that had a perfectly good browser installed.
+# $PZGET_BROWSER overrides the search entirely.
 chrome=""
-for b in chromium brave google-chrome-stable microsoft-edge vivaldi; do
-  if command -v "$b" >/dev/null 2>&1; then chrome="$b"; break; fi
-done
+if [[ -n "${PZGET_BROWSER:-}" ]] && command -v "$PZGET_BROWSER" >/dev/null 2>&1; then
+  chrome="$PZGET_BROWSER"
+else
+  for b in \
+    brave-origin brave brave-browser brave-bin \
+    chromium chromium-browser \
+    google-chrome-stable google-chrome google-chrome-beta \
+    microsoft-edge-stable microsoft-edge \
+    vivaldi vivaldi-stable \
+    thorium-browser ungoogled-chromium
+  do
+    if command -v "$b" >/dev/null 2>&1; then chrome="$b"; break; fi
+  done
+fi
 if [[ -z "$chrome" ]]; then
-  echo "pzget-webapp-add: no chromium-family browser found (needed for --app)" >&2
+  echo "pzget-webapp-add: no chromium-family browser found (needed for --app)." >&2
+  echo "  Install one (e.g. chromium) or set PZGET_BROWSER to your binary." >&2
   exit 1
 fi
 

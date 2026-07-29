@@ -16,8 +16,21 @@ PKG_REMOVE="$BIN_DIR/pzget-pkg-remove"
 # shellcheck source=/dev/null
 . "$BIN_DIR/pzget-i18n"
 
+# shellcheck source=/dev/null
+. "$BIN_DIR/pzget-theme"
+
 menu() { # prompt < lines-on-stdin -> selected line
-  fuzzel --dmenu --prompt "$1 " --width 52 2>/dev/null
+  # --minimal-lines shrinks the window to the number of entries: a 5-item
+  # menu was rendering in a box sized for ~15, with the rest empty.
+  # --width 64 (was 52) stops the descriptions being truncated to "…".
+  # Colours come from the desktop's live scheme; see pzget-theme.
+  # shellcheck disable=SC2046
+  fuzzel --dmenu \
+    --prompt "$1 " \
+    --width 64 \
+    --minimal-lines \
+    $(pzget_fuzzel_args) \
+    2>/dev/null
 }
 
 # Open a floating terminal running a command, then pause so output is visible.
@@ -68,6 +81,11 @@ install_app() { # name source target
 }
 
 # List every app of a source and install the chosen one.
+#
+# Package sources (repo/aur) skip this entirely and jump straight to the fzf
+# picker: having to pick the source, then scroll a curated list, then pick
+# "search everything" was three steps to do one thing. The picker now shows
+# the curated favourites at the top of the same list, so nothing is lost.
 show_source() { # source title
   local source="$1" title="$2"
   declare -A ACTION=()
@@ -141,7 +159,13 @@ main_menu() {
       rest="${act#src$'\t'}"
       source="${rest%%$'\t'*}"
       title="${rest#*$'\t'}"
-      show_source "$source" "$title" ;;
+      # repo/aur -> straight to the picker (one step, favourites included).
+      # webapp keeps the list menu: there is nothing to "search all" there.
+      if [[ "$source" == repo || "$source" == aur ]]; then
+        term_run "pzget · $title" "$PKG_PICK $source"
+      else
+        show_source "$source" "$title"
+      fi ;;
   esac
 }
 

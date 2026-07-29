@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# pzget-theme — sourced by pzget. Emits fuzzel styling flags derived from the
+# desktop's own colour scheme, so the menu matches the rest of the system
+# instead of shipping hardcoded colours that clash with whatever theme is set.
+#
+# Reads caelestia's live scheme (~/.local/state/caelestia/scheme.json), which
+# is rewritten whenever the user changes theme — so pzget follows along with
+# no configuration. Falls back to a dark palette when that file is absent, so
+# this stays usable outside caelestia.
+#
+# Override any of it by exporting PZGET_FUZZEL_ARGS before launching pzget.
+
+_pz_scheme="${PZGET_SCHEME:-$HOME/.local/state/caelestia/scheme.json}"
+
+# Pull one colour out of the scheme's "colours" object. Values are bare RRGGBB.
+_pz_colour() { # key fallback
+  local val=""
+  if [[ -f "$_pz_scheme" ]]; then
+    val="$(python3 -c '
+import json,sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print((d.get("colours") or {}).get(sys.argv[2], ""))
+except Exception:
+    print("")
+' "$_pz_scheme" "$1" 2>/dev/null)"
+  fi
+  printf '%s' "${val:-$2}"
+}
+
+pzget_fuzzel_args() {
+  # Honour a full manual override without touching the scheme at all.
+  if [[ -n "${PZGET_FUZZEL_ARGS:-}" ]]; then
+    printf '%s' "$PZGET_FUZZEL_ARGS"
+    return
+  fi
+
+  local bg surface text subtext accent on_accent border sel sel_text
+  bg="$(_pz_colour surfaceContainer 201f23)"
+  surface="$(_pz_colour surfaceContainerHigh 2a292e)"
+  text="$(_pz_colour onSurface e5e1e7)"
+  subtext="$(_pz_colour onSurfaceVariant c8c5d1)"
+  accent="$(_pz_colour primary c2c1ff)"
+  on_accent="$(_pz_colour onPrimary 2a2a60)"
+  border="$(_pz_colour outlineVariant 47464f)"
+  # secondaryContainer is a muted fill: a full-accent selection bar is loud
+  # when it spans the whole row.
+  sel="$(_pz_colour secondaryContainer 45455c)"
+  sel_text="$(_pz_colour onSecondaryContainer b4b2ce)"
+
+  # ee = ~93% opacity: enough blur/transparency to sit on the wallpaper
+  # without hurting contrast.
+  printf '%s' "\
+--background-color=${bg}ee \
+--text-color=${subtext}ff \
+--selection-color=${sel}ff \
+--selection-text-color=${text}ff \
+--selection-match-color=${accent}ff \
+--match-color=${accent}ff \
+--prompt-color=${accent}ff \
+--input-color=${text}ff \
+--placeholder-color=${border}ff \
+--counter-color=${border}ff \
+--border-color=${border}ff \
+--border-width=2 \
+--border-radius=16 \
+--selection-radius=10 \
+--horizontal-pad=28 \
+--vertical-pad=20 \
+--inner-pad=14 \
+--line-height=26"
+}
