@@ -1,5 +1,10 @@
 # pzget
 
+[![Release](https://img.shields.io/github/v/release/Daf3r/pzget?style=flat-square&color=1793d1)](https://github.com/Daf3r/pzget/releases)
+[![License](https://img.shields.io/github/license/Daf3r/pzget?style=flat-square&color=1793d1)](LICENSE)
+![Arch Linux](https://img.shields.io/badge/Arch-repos%20%2B%20AUR-1793d1?style=flat-square)
+![Hyprland](https://img.shields.io/badge/Hyprland-fuzzel-1793d1?style=flat-square)
+
 A fast, keyboard-driven app & web-app installer for Arch Linux — omarchy-style,
 built for [caelestia](https://github.com/caelestia-dots) / Hyprland.
 
