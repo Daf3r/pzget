@@ -12,6 +12,8 @@ Installs run **fully unattended** (no confirmation or build menus).
 > The menu UI is available in **English or Spanish**, chosen at install time
 > (stored in `~/.config/pzget/lang`). Code, config keys and this README are in English.
 
+> **Demo GIF goes here.**
+
 ## The menu
 
 ```
@@ -24,27 +26,46 @@ Installs run **fully unattended** (no confirmation or build menus).
   🗑️  Eliminar app     desinstala programas o webapps
 ```
 
-Entering a package source shows your curated picks (installed ones marked `✓`)
-plus a full-search entry:
+Picking a package source drops you straight into an `fzf` picker over
+*everything* in it, with your curated favourites merged at the top (`*`) and
+installed packages checked:
 
 ```
-  Arch (oficial) »
-
-  ✓  Neovim                (ya instalado)
-     Zed                   ·  editor de código rápido
-     Lutris                ·  plataforma de juegos para Linux
-  ─────────────────────────────
-  🔎  Buscar cualquier paquete…     → fzf over every package in this source
+  > reproductor
+  ┌───────────────────────────────────────────────────────────┐
+  │ * ✓ mpv          a free, open source, and cross-platform… │
+  │ *   vlc          multi-platform MPEG, DVD, and DivX player│
+  │     audacious    lightweight, advanced audio player       │
+  └───────────────────────────────────────────────────────────┘
 ```
+
+## Search by what a package does
+
+Typing `reproductor` finds `mpv`. That is the point of the whole thing.
+
+Arch package descriptions are English-only, so a Spanish speaker searching their
+own language finds nothing — and a name-only picker means you can only find a
+package if you already know what it's called. pzget fixes both:
+
+- **Descriptions are searchable**, not just names. `expac -S` dumps all ~23k repo
+  packages *with* their descriptions in ~0.2 s, so the list is built once and
+  `fzf` filters locally.
+- **Spanish keywords are attached invisibly.** `share/synonyms-es.tsv` maps
+  Spanish terms onto packages whose English description matches. They're
+  searchable but hidden from the display (`fzf --nth` vs `--with-nth`), so the
+  list stays clean.
+- **The AUR is searched live** through its RPC rather than listing ~90k bare
+  names. The RPC returns descriptions *and* vote counts — and votes are what let
+  you tell a real package from its near-identical forks.
 
 ## Features
 
 - **Organised by source** — the top-level menu *is* the sources (📦 Arch / 📥 AUR
   / 🌐 web apps), so you always know where an app comes from. Installed catalog
   items are marked with a check.
-- **Curated list + full search** — each package source shows your favourites
-  first, plus a “🔎 Buscar cualquier paquete…” entry that opens an omarchy-style
-  `fzf` picker over *every* package in that source, with info preview and
+- **One picker, everything in it** — choosing a source opens an omarchy-style
+  `fzf` picker over *every* package it has, searchable by description and by
+  Spanish keyword, with your favourites merged at the top, info preview and
   multi-select.
 - **Unattended installs** — pacman/AUR packages install with no prompts
   (`--noconfirm` plus `--answerdiff/clean=None`); only your sudo password is
@@ -62,6 +83,7 @@ plus a full-search entry:
 |------|----------|
 | `fuzzel` | the graphical menu |
 | `fzf` | the “search / uninstall” pickers |
+| `expac` | listing repo packages with their descriptions (~0.2 s for ~23k) |
 | `yay` | installing from official repos and the AUR |
 | `python3` (≥ 3.11) | reading the TOML catalog (`tomllib`) |
 | a chromium-family browser (`chromium`, `brave`, …) | web apps |
@@ -136,7 +158,10 @@ hand-edit those.
 | `pzget` | Bash orchestrator — the fuzzel menu and router |
 | `pzget-i18n` | Bash — sourced translation table (en/es) + `t()` helper |
 | `pzget-catalog` | Python — the only piece that parses TOML; emits menu lines (lang-aware `desc`) |
+| `pzget-pkg-list` | Python — builds the searchable list via `expac`, merging favourites and Spanish keywords |
 | `pzget-pkg-pick` | Bash — omarchy-style `fzf` package picker, scoped to one source |
+| `pzget-aur-search` | Bash — live AUR RPC search (descriptions + vote counts) |
+| `pzget-theme` | Bash — fuzzel styling derived from the desktop's live colour scheme, so the menu never clashes with your theme |
 | `pzget-pkg-remove` | Bash — `fzf` uninstaller for packages + pzget web apps |
 | `pzget-preview` | Bash — shell-agnostic `fzf` preview helper for the uninstaller |
 | `pzget-webapp-add` | Bash — creates a web-app `.desktop` + icon |
